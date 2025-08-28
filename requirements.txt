@@ -1,7 +1,7 @@
 langchain
 langchain-google-genai
 qdrant-client
-pypdf2
+PyMuPDF
 pdfplumber
 pytesseract
 pillow
