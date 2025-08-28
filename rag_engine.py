@@ -65,7 +65,17 @@ class RAGEngine:
             
             Analysis request: {analysis_request}
             
-            Provide a thorough analysis based on the document content. Keep page numbers and references where relevant, just do not show page numbers in the final answer unless specifically asked for it."""),
+            Provide a thorough analysis based on the document content. Keep page numbers and references where relevant, just do not show page numbers in the final answer unless specifically asked for it.
+            In your answer, give me a well-structured summary with these elements:
+
+            Key figures (overall + category-wise) stated clearly and upfront.
+
+            Alignment with national benchmarks or policies (like RTE/NEP).
+
+            State-level variations or insights if available (high/low outliers).
+
+            A 2–3 line concluding summary that synthesizes the insights (not just repeating numbers).
+            Keep the tone concise, formal, and dashboard-ready"""),
             ("human", "Please analyze this document according to the request: {analysis_request}")
         ])
     

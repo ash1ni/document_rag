@@ -39,9 +39,9 @@ class VectorStore:
         self.embedding_model = SentenceTransformer(self.config.EMBEDDING_MODEL)
         self.collection_name = self.config.QDRANT_COLLECTION_NAME
         self._init_collection()
-    
+
     def _init_collection(self):
-        """Initialize the Qdrant collection."""
+        """Initialize the Qdrant collection with proper indexes."""
         try:
             # Check if collection exists
             collections = self.client.get_collections()
@@ -57,13 +57,53 @@ class VectorStore:
                     )
                 )
                 logger.info(f"Created collection: {self.collection_name}")
+                
+                # Create indexes for filtering
+                self._create_indexes()
             else:
                 logger.info(f"Collection {self.collection_name} already exists")
-                    
+                # Ensure indexes exist
+                self._create_indexes()
+                
         except Exception as e:
             logger.error(f"Error initializing collection: {str(e)}")
             raise
-    
+
+    def _create_indexes(self):
+        """Create necessary indexes for filtering using the correct API."""
+        try:
+            # Create index for document_id (required for filtering)
+            try:
+                # Use the correct method for creating indexes
+                self.client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name="document_id",
+                    field_schema="keyword"
+                )
+                logger.info("Created index for document_id field")
+            except Exception as e:
+                if "already exists" in str(e).lower():
+                    logger.info("Index for document_id already exists")
+                else:
+                    logger.warning(f"Could not create document_id index: {e}")
+            
+            # Create index for page_number (optional, for better performance)
+            try:
+                self.client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name="page_number",
+                    field_schema="integer"
+                )
+                logger.info("Created index for page_number field")
+            except Exception as e:
+                if "already exists" in str(e).lower():
+                    logger.info("Index for page_number already exists")
+                else:
+                    logger.warning(f"Could not create page_number index: {e}")
+                    
+        except Exception as e:
+            logger.warning(f"Error creating indexes: {str(e)}")
+
     def _generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts."""
         try:
@@ -81,7 +121,7 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Error generating embeddings: {str(e)}")
             raise
-    
+
     def add_documents(self, documents: List[Dict[str, Any]], document_id: str) -> bool:
         """Add documents to the vector store."""
         try:
@@ -136,7 +176,7 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Error adding documents to vector store: {str(e)}")
             return False
-    
+
     def search_similar(self, query: str, top_k: int = 5, document_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Search for similar documents."""
         try:
@@ -183,7 +223,7 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Error searching similar documents: {str(e)}")
             return []
-    
+
     def get_collection_stats(self) -> Dict[str, Any]:
         """Get statistics about the collection."""
         try:
@@ -199,7 +239,7 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Error getting collection stats: {str(e)}")
             return {}
-    
+
     def delete_document(self, document_id: str) -> bool:
         """Delete all chunks for a specific document."""
         try:
