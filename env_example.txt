@@ -1,0 +1,4 @@
+GOOGLE_API_KEY=your_google_gemini_api_key_here
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+QDRANT_COLLECTION_NAME=pdf_documents 
