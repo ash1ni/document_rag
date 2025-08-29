@@ -28,16 +28,16 @@ class Config:
         self.QDRANT_COLLECTION_NAME = self._get_config("QDRANT_COLLECTION_NAME", "pdf_documents")
         
         # Embedding model
-        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+        self.EMBEDDING_MODEL = self._get_config("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
         
         # Other settings
-        self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
-        self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
-        self.OCR_LANGUAGE = os.getenv("OCR_LANGUAGE", "eng")
-        self.OCR_CONFIG = os.getenv("OCR_CONFIG", "--psm 6")
-        self.MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
-        self.TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
-        self.MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE_MB", "50")) * 1024 * 1024
+        self.CHUNK_SIZE = int(self._get_config("CHUNK_SIZE", "1000"))
+        self.CHUNK_OVERLAP = int(self._get_config("CHUNK_OVERLAP", "200"))
+        self.OCR_LANGUAGE = self._get_config("OCR_LANGUAGE", "eng")
+        self.OCR_CONFIG = self._get_config("OCR_CONFIG", "--psm 6")
+        self.MAX_TOKENS = int(self._get_config("MAX_TOKENS", "2048"))
+        self.TEMPERATURE = float(self._get_config("TEMPERATURE", "0.7"))
+        self.MAX_FILE_SIZE = int(self._get_config("MAX_FILE_SIZE_MB", "50")) * 1024 * 1024
         self.ALLOWED_EXTENSIONS = {".pdf"}
     
     def _get_config(self, key: str, default: str = None) -> str:

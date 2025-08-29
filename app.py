@@ -14,9 +14,9 @@ from rag_engine import RAGEngine
 from config import Config
 
 # At the top of the file, after imports
-# Global document manager instance
+# Global document manager instance - initialize only when needed
 if 'global_document_manager' not in st.session_state:
-    st.session_state.global_document_manager = DocumentManager()
+    st.session_state.global_document_manager = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -98,6 +98,16 @@ if 'documents_loaded' not in st.session_state:
 if 'documents' not in st.session_state:
     st.session_state.documents = {}
 
+def get_document_manager():
+    """Get or create the document manager instance."""
+    if st.session_state.global_document_manager is None:
+        try:
+            st.session_state.global_document_manager = DocumentManager()
+        except Exception as e:
+            st.error(f"Failed to initialize document manager: {str(e)}")
+            st.stop()
+    return st.session_state.global_document_manager
+
 def initialize_components():
     """Initialize the main components of the application."""
     try:
@@ -107,7 +117,7 @@ def initialize_components():
             st.stop()
         
         # Use global document manager
-        document_manager = st.session_state.global_document_manager
+        document_manager = get_document_manager()
         
         rag_engine = RAGEngine()
         
