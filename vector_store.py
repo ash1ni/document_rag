@@ -5,10 +5,12 @@ import logging
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance, VectorParams, PointStruct, 
-    Filter, FieldCondition, MatchValue
+    Filter, FieldCondition, MatchValue,
+    SearchRequest, SearchParams, VectorParams
 )
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +39,50 @@ class VectorStore:
             )
             logger.info(f"Connected to local Qdrant: {self.config.QDRANT_HOST}:{self.config.QDRANT_PORT}")
         
-        self.embedding_model = SentenceTransformer(self.config.EMBEDDING_MODEL)
+        # Initialize embedding model with proper device handling
+        self.embedding_model = self._initialize_embedding_model()
         self.collection_name = self.config.QDRANT_COLLECTION_NAME
         self._init_collection()
+
+    def _initialize_embedding_model(self) -> SentenceTransformer:
+        """Initialize the embedding model with proper device handling."""
+        try:
+            # Check if CUDA is available
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            logger.info(f"Initializing embedding model on device: {device}")
+            
+            # Initialize model with device specification to avoid meta tensor issues
+            model = SentenceTransformer(
+                self.config.EMBEDDING_MODEL,
+                device=device
+            )
+            
+            # Ensure model is properly loaded and not using meta tensors
+            if device == 'cuda':
+                # Move to CUDA if available
+                model = model.to(device)
+            else:
+                # For CPU, ensure we're not using meta tensors
+                model = model.to('cpu')
+            
+            logger.info(f"Successfully initialized embedding model: {self.config.EMBEDDING_MODEL}")
+            return model
+            
+        except Exception as e:
+            logger.error(f"Error initializing embedding model: {str(e)}")
+            # Fallback to CPU with explicit device specification
+            try:
+                logger.info("Attempting fallback to CPU initialization...")
+                model = SentenceTransformer(
+                    self.config.EMBEDDING_MODEL,
+                    device='cpu'
+                )
+                model = model.to('cpu')
+                logger.info("Fallback CPU initialization successful")
+                return model
+            except Exception as fallback_error:
+                logger.error(f"Fallback initialization also failed: {str(fallback_error)}")
+                raise
 
     def _init_collection(self):
         """Initialize the Qdrant collection with proper indexes."""
@@ -111,8 +154,13 @@ class VectorStore:
             # Get the embedding model (will initialize if needed)
             model = self.embedding_model
             
-            # Use sentence-transformers - fully synchronous
-            embeddings = model.encode(texts, convert_to_tensor=False)
+            # Use sentence-transformers with proper device handling
+            with torch.no_grad():  # Disable gradient computation for inference
+                embeddings = model.encode(
+                    texts, 
+                    convert_to_tensor=False,
+                    show_progress_bar=False  # Disable progress bar for cleaner logs
+                )
             
             # Convert to list of lists if needed
             if isinstance(embeddings, np.ndarray):
@@ -178,8 +226,22 @@ class VectorStore:
             logger.error(f"Error adding documents to vector store: {str(e)}")
             return False
 
-    def search_similar(self, query: str, top_k: int = 5, document_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Search for similar documents."""
+    def similarity_search(self, query: str, top_k: int = 5, document_filter: Optional[str] = None, 
+                         score_threshold: Optional[float] = None, 
+                         search_params: Optional[SearchParams] = None) -> List[Dict[str, Any]]:
+        """
+        Perform similarity search using Qdrant's advanced search capabilities.
+        
+        Args:
+            query: The search query text
+            top_k: Maximum number of results to return
+            document_filter: Optional document ID to filter results
+            score_threshold: Minimum similarity score threshold (0.0 to 1.0)
+            search_params: Optional Qdrant SearchParams for advanced configuration
+            
+        Returns:
+            List of dictionaries containing search results with metadata
+        """
         try:
             # Generate query embedding
             query_embedding = self._generate_embeddings([query])[0]
@@ -196,18 +258,33 @@ class VectorStore:
                     ]
                 )
             
-            # Search in Qdrant
+            # Set default search parameters if none provided
+            if search_params is None:
+                search_params = SearchParams(
+                    hnsw_ef=128,  # Higher values = better accuracy, slower search
+                    exact=False    # Use approximate search for better performance
+                )
+            
+            # Perform similarity search using Qdrant's search method
             search_results = self.client.search(
                 collection_name=self.collection_name,
                 query_vector=query_embedding,
                 limit=top_k,
                 query_filter=search_filter,
-                with_payload=True
+                score_threshold=score_threshold,
+                search_params=search_params,
+                with_payload=True,
+                with_vectors=False  # Don't return vectors to save bandwidth
             )
             
             # Format results
             results = []
             for result in search_results:
+                # Convert Qdrant score to similarity score (Qdrant uses distance, we want similarity)
+                # For cosine distance: similarity = 1 - distance
+                # For euclidean: similarity = 1 / (1 + distance)
+                similarity_score = 1.0 - result.score if hasattr(result, 'score') else 0.0
+                
                 results.append({
                     'text': result.payload['text'],
                     'page_number': result.payload['page_number'],
@@ -215,15 +292,24 @@ class VectorStore:
                     'document_id': result.payload['document_id'],
                     'filename': result.payload.get('filename', ''),
                     'processing_method': result.payload.get('processing_method', ''),
-                    'similarity_score': result.score,
-                    'method': 'vector_search'
+                    'similarity_score': similarity_score,
+                    'raw_score': result.score if hasattr(result, 'score') else 0.0,
+                    'method': 'qdrant_similarity_search'
                 })
             
+            # Sort by similarity score (highest first)
+            results.sort(key=lambda x: x['similarity_score'], reverse=True)
+            
+            logger.info(f"Similarity search returned {len(results)} results for query: {query[:50]}...")
             return results
             
         except Exception as e:
-            logger.error(f"Error searching similar documents: {str(e)}")
+            logger.error(f"Error in similarity search: {str(e)}")
             return []
+
+    def search_similar(self, query: str, top_k: int = 5, document_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Legacy method - now calls similarity_search for backward compatibility."""
+        return self.similarity_search(query, top_k, document_filter)
 
     def get_collection_stats(self) -> Dict[str, Any]:
         """Get statistics about the collection."""

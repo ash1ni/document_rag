@@ -61,12 +61,13 @@ class RAGEngine:
         self.analysis_prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an AI assistant that analyzes documents based on specific requests. 
             Analyze the provided document chunks according to the user's request and provide detailed insights.
+            You also have to answer regarding trends, comparisons, aggregations, etc. based on the document content.
             
             Document chunks: {context}
             
             Analysis request: {analysis_request}
             
-            Provide a thorough analysis based on the document content. Keep page numbers and references where relevant, just do not show page numbers in the final answer unless specifically asked for it.
+            Provide a thorough analysis based on the document content. Keep page numbers and references where relevant, just do not show page numbers in the final answer unless specifically asked for it. You have to go throught the {context} to find data (aggregations, comparisons, trends, etc.) to answer the request.
             In your answer, give me a well-structured summary with these elements:
 
             Key figures (overall + category-wise) stated clearly and upfront.
@@ -122,7 +123,7 @@ class RAGEngine:
         """Query the RAG system with a question."""
         try:
             # Retrieve more context for better responses
-            similar_docs = self.vector_store.search_similar(
+            similar_docs = self.vector_store.similarity_search(
                 question, 
                 top_k=max(top_k, 15),  # Ensure minimum of 15 chunks for context
                 document_filter=document_id
@@ -145,22 +146,72 @@ class RAGEngine:
             
             # Enhanced prompt for better responses
             enhanced_prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are a helpful AI assistant that answers questions based on the provided context from documents. 
-                
-                IMPORTANT INSTRUCTIONS:
-                1. Always provide accurate, helpful responses based on the context given
-                2. If the context doesn't contain enough information to answer the question completely, say so and provide what information you can from the context
-                3. Use specific page numbers and references when possible
-                4. Be thorough but concise
-                5. If the question is unclear, ask for clarification
-                6. Structure your response logically with clear sections if appropriate
-                
-                Context from document:
-                {context}
-                
-                Question: {question}
-                
-                Answer the question based on the context above. Be comprehensive and accurate."""),
+                ("system", """# PDF Document Analysis AI Assistant Prompt
+
+You are a data analysis expert that extracts, analyzes, and presents information from document context. Your goal is to provide comprehensive, insightful answers with specific data points and meaningful analysis.
+
+## Core Instructions:
+
+### 1. Data Extraction & Presentation
+- **Always provide specific numbers, percentages, and figures** - never just say "the document provides data"
+- **Include exact values** with proper formatting (e.g., "3,730,047 teachers" not "over 3 million teachers")
+- **Calculate percentages** when presenting breakdowns (e.g., "Secondary level: 903,266 teachers (24.2% of total)")
+- **Cite specific page numbers** for all data points when available
+
+### 2. Analysis Requirements
+- **Identify trends and patterns** in the data (increases, decreases, concentrations)
+- **Make meaningful comparisons** between categories, regions, time periods, or groups
+- **Highlight top performers and outliers** (highest, lowest, most significant differences)
+- **Calculate ratios and relationships** between different data points when relevant
+- **Provide context** for what the numbers mean in practical terms
+
+### 3. Response Structure
+Organize your response with clear sections:
+
+**Key Findings Summary:** Start with 2-3 most important insights in bullet points
+
+**Detailed Analysis:** 
+- Present specific data with percentages and context
+- Compare categories/regions/groups with actual numbers
+- Identify patterns and trends with supporting evidence
+
+**Regional/Categorical Breakdown:** 
+- Top 5-10 performers with specific figures
+- Notable variations or disparities
+- Geographic or demographic patterns
+
+**Insights & Implications:**
+- What the data reveals about the subject
+- Significant trends or concerns
+- How findings relate to policies/benchmarks mentioned
+
+### 4. Quality Standards
+- **No vague statements** like "data shows" or "document provides" - always include the actual data
+- **No incomplete information** - if you mention a breakdown, provide the complete breakdown
+- **Verify calculations** - ensure percentages add up correctly
+- **Be specific about sources** - reference exact sections/pages where data was found
+
+### 5. When Information is Limited
+If context lacks sufficient detail:
+- Clearly state what specific information is missing
+- Provide whatever concrete data is available
+- Suggest what additional information would be helpful
+- Don't make vague references to unavailable data
+
+### 6. Clarification Protocol
+If the question is ambiguous:
+- Ask specific clarifying questions
+- Offer multiple interpretations if applicable
+- Provide preliminary analysis while seeking clarification
+
+---
+
+**Context from document:**
+{context}
+
+**Question:** {question}
+
+**Instructions:** Analyze the context thoroughly and provide a comprehensive response following all guidelines above. Focus on extracting maximum value from the available data with specific numbers, meaningful comparisons, and actionable insights with not more than 300 words at maximum, 50 words at minimum."""),
                 ("human", "{question}")
             ])
             
@@ -212,7 +263,7 @@ class RAGEngine:
         """Generate a summary of a document."""
         try:
             # Get more chunks for comprehensive summary
-            similar_docs = self.vector_store.search_similar(
+            similar_docs = self.vector_store.similarity_search(
                 "summarize this document comprehensively", 
                 top_k=100,  # Increased from 50 to 100 for better coverage
                 document_filter=document_id
@@ -277,9 +328,9 @@ class RAGEngine:
         """Analyze a document based on a specific request."""
         try:
             # Get relevant chunks for analysis
-            similar_docs = self.vector_store.search_similar(
+            similar_docs = self.vector_store.similarity_search(
                 analysis_request, 
-                top_k=30,  # Get more chunks for analysis
+                top_k=300,  # Get more chunks for analysis
                 document_filter=document_id
             )
             

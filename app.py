@@ -316,21 +316,15 @@ def display_chat_interface(rag_engine):
     with col1:
         search_mode = st.selectbox(
             "Search Mode",
-            ["RAG Query", "Document Summary", "Document Analysis"],
+            ["Document Analysis"],
             help="Choose how to interact with your document"
         )
     
     with col2:
-        top_k = st.slider(
-            "Context Chunks",
-            min_value=5,  # Increased minimum
-            max_value=25,  # Increased maximum
-            value=15,      # Increased default
-            help="Number of document chunks to use for context (higher = more comprehensive but slower)"
-        )
+        top_k = 250
     
     with col3:
-        if st.button("🚀 Send", type="primary", disabled=not user_question):
+        if st.button("Send", type="primary", disabled=not user_question):
             if user_question:
                 process_user_question(user_question, search_mode, top_k, rag_engine)
     
