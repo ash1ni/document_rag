@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Page configuration
 st.set_page_config(
-    page_title="UDISE Document Chat",
+    page_title="UDISE+ Document Chat",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -143,7 +143,7 @@ def display_header():
     """Display the main header of the application."""
     st.markdown("""
     <div class="main-header">
-        <h1>UDISE Document Chat</h1>
+        <h1>UDISE+ Document Chat</h1>
     </div>
     """, unsafe_allow_html=True)
 
