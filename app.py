@@ -8,10 +8,10 @@ from typing import Dict, Any, List
 import traceback
 import time # Added for manual refresh
 
-# Import our custom modules
-from document_manager import DocumentManager
-from rag_engine import RAGEngine
-from config import Config
+# Remove these module-level imports to avoid circular dependency issues
+# from document_manager import DocumentManager
+# from rag_engine import RAGEngine
+# from config import Config
 
 # At the top of the file, after imports
 # Global document manager instance - initialize only when needed
@@ -99,19 +99,34 @@ if 'documents' not in st.session_state:
     st.session_state.documents = {}
 
 def get_document_manager():
-    """Get or create the document manager instance."""
+    """Get or create the document manager instance with lazy import."""
     if st.session_state.global_document_manager is None:
         try:
+            # Import here to avoid circular dependency issues
+            from document_manager import DocumentManager
             st.session_state.global_document_manager = DocumentManager()
         except Exception as e:
             st.error(f"Failed to initialize document manager: {str(e)}")
             st.stop()
     return st.session_state.global_document_manager
 
+def get_rag_engine():
+    """Get or create the RAG engine instance with lazy import."""
+    if 'rag_engine' not in st.session_state:
+        try:
+            # Import here to avoid circular dependency issues
+            from rag_engine import RAGEngine
+            st.session_state.rag_engine = RAGEngine()
+        except Exception as e:
+            st.error(f"Failed to initialize RAG engine: {str(e)}")
+            st.stop()
+    return st.session_state.rag_engine
+
 def initialize_components():
     """Initialize the main components of the application."""
     try:
         # Check if Google API key is set
+        from config import Config
         if not Config().GOOGLE_API_KEY:
             st.error("⚠️ Google API key not found! Please set GOOGLE_API_KEY in your .env file.")
             st.stop()
@@ -119,7 +134,7 @@ def initialize_components():
         # Use global document manager
         document_manager = get_document_manager()
         
-        rag_engine = RAGEngine()
+        rag_engine = get_rag_engine()
         
         return document_manager, rag_engine
         
@@ -252,7 +267,7 @@ def display_sidebar(document_manager: DocumentManager):
     # System information
     with st.sidebar.expander("⚙️ System Info", expanded=False):
         try:
-            rag_engine = RAGEngine()
+            rag_engine = get_rag_engine()
             system_info = rag_engine.get_system_info()
             
             if 'error' not in system_info:
