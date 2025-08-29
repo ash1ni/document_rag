@@ -107,6 +107,7 @@ def get_document_manager():
             st.session_state.global_document_manager = DocumentManager()
         except Exception as e:
             st.error(f"Failed to initialize document manager: {str(e)}")
+            st.error(f"Error details: {type(e).__name__}: {str(e)}")
             st.stop()
     return st.session_state.global_document_manager
 
@@ -125,12 +126,10 @@ def get_rag_engine():
 def initialize_components():
     """Initialize the main components of the application."""
     try:
-        # Check if Google API key is set
+        # Check if Google API key is set - use lazy evaluation
         from config import Config
-        if not Config().GOOGLE_API_KEY:
-            st.error("⚠️ Google API key not found! Please set GOOGLE_API_KEY in your .env file.")
-            st.stop()
         
+        # Don't validate config here - let it happen when actually needed
         # Use global document manager
         document_manager = get_document_manager()
         

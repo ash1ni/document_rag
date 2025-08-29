@@ -18,6 +18,9 @@ class Config:
         # Qdrant Cloud Configuration (required for Streamlit Cloud)
         self.QDRANT_HOST = self._get_config("QDRANT_HOST")
         if not self.QDRANT_HOST:
+            # Add debugging information
+            print(f"Debug: QDRANT_HOST not found. Available secrets: {list(st.secrets.keys()) if hasattr(st, 'secrets') and st.secrets else 'No secrets'}")
+            print(f"Debug: Environment variables: QDRANT_HOST={os.getenv('QDRANT_HOST')}")
             raise ValueError("QDRANT_HOST is required for Streamlit Cloud deployment")
         
         self.QDRANT_PORT = int(self._get_config("QDRANT_PORT", "443"))
@@ -44,7 +47,7 @@ class Config:
         """Get configuration value from Streamlit secrets or environment variables."""
         try:
             # First try to get from Streamlit secrets (for Streamlit Cloud)
-            if hasattr(st, 'secrets') and key in st.secrets:
+            if hasattr(st, 'secrets') and st.secrets and key in st.secrets:
                 return st.secrets[key]
             
             # Fall back to environment variables
