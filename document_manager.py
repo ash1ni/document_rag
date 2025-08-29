@@ -9,7 +9,6 @@ import shutil
 import streamlit as st
 from pdf_processor import PDFProcessor
 from vector_store import VectorStore
-from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +16,8 @@ class DocumentManager:
     """Manages document lifecycle including upload, storage, and metadata."""
     
     def __init__(self):
+        # Lazy load config to avoid import issues
+        from config import Config
         self.config = Config()
         self.pdf_processor = PDFProcessor()
         self.vector_store = VectorStore()

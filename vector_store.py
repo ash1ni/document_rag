@@ -8,7 +8,6 @@ from qdrant_client.models import (
     Filter, FieldCondition, MatchValue
 )
 from sentence_transformers import SentenceTransformer
-from config import Config
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -17,6 +16,8 @@ class VectorStore:
     """Manages vector storage and retrieval using Qdrant and sentence-transformers."""
     
     def __init__(self):
+        # Lazy load config to avoid import issues
+        from config import Config
         self.config = Config()
         
         # Initialize Qdrant client with cloud support

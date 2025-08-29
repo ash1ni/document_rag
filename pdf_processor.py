@@ -14,7 +14,6 @@ import cv2
 import numpy as np
 from typing import List, Dict, Any
 import logging
-from config import Config
 import io
 
 # Configure logging
@@ -25,6 +24,8 @@ class PDFProcessor:
     """Handles PDF processing including text extraction, OCR, and chunking."""
     
     def __init__(self):
+        # Lazy load config to avoid import issues
+        from config import Config
         self.config = Config()
         # Set tesseract path for Windows if needed
         if os.name == 'nt':

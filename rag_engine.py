@@ -4,7 +4,6 @@ from typing import Dict, Any, List, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.prompts import ChatPromptTemplate
-from config import Config
 from vector_store import VectorStore
 import time
 import random
@@ -15,6 +14,8 @@ class RAGEngine:
     """RAG engine using Google Gemini for generation and vector store for retrieval."""
     
     def __init__(self):
+        # Lazy load config to avoid import issues
+        from config import Config
         self.config = Config()
         self.vector_store = VectorStore()
         
