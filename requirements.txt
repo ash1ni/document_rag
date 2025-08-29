@@ -8,7 +8,6 @@ pillow
 opencv-python
 numpy
 streamlit
-python-dotenv
 sentence-transformers
 transformers
 torch

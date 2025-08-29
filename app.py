@@ -126,9 +126,6 @@ def get_rag_engine():
 def initialize_components():
     """Initialize the main components of the application."""
     try:
-        # Check if Google API key is set - use lazy evaluation
-        from config import Config
-        
         # Don't validate config here - let it happen when actually needed
         # Use global document manager
         document_manager = get_document_manager()

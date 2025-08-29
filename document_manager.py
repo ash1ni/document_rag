@@ -17,8 +17,8 @@ class DocumentManager:
     
     def __init__(self):
         # Lazy load config to avoid import issues
-        from config import Config
-        self.config = Config()
+        from config import get_config
+        self.config = get_config()
         self.pdf_processor = PDFProcessor()
         self.vector_store = VectorStore()
         self.upload_dir = Path("uploads")

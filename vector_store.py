@@ -17,8 +17,8 @@ class VectorStore:
     
     def __init__(self):
         # Lazy load config to avoid import issues
-        from config import Config
-        self.config = Config()
+        from config import get_config
+        self.config = get_config()
         
         # Initialize Qdrant client with cloud support
         if self.config.is_qdrant_cloud:

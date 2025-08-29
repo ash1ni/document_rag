@@ -25,8 +25,8 @@ class PDFProcessor:
     
     def __init__(self):
         # Lazy load config to avoid import issues
-        from config import Config
-        self.config = Config()
+        from config import get_config
+        self.config = get_config()
         # Set tesseract path for Windows if needed
         if os.name == 'nt':
             pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'

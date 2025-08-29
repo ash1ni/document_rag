@@ -15,8 +15,8 @@ class RAGEngine:
     
     def __init__(self):
         # Lazy load config to avoid import issues
-        from config import Config
-        self.config = Config()
+        from config import get_config
+        self.config = get_config()
         self.vector_store = VectorStore()
         
         # Initialize Gemini with correct parameter names
