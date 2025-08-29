@@ -151,7 +151,7 @@ def display_header():
     </div>
     """, unsafe_allow_html=True)
 
-def display_sidebar(document_manager: DocumentManager):
+def display_sidebar(document_manager):
     """Display the sidebar with document management options."""
     st.sidebar.markdown("## 📁 Document Management")
     
@@ -285,13 +285,14 @@ def display_sidebar(document_manager: DocumentManager):
         except Exception as e:
             st.error(f"Error getting system info: {str(e)}")
 
-def display_chat_interface(rag_engine: RAGEngine):
+def display_chat_interface(rag_engine):
     """Display the main chat interface."""
     st.markdown("## 💬 Chat Interface")
     
     # Document selection info
     if st.session_state.current_document_id:
-        document_manager = DocumentManager()
+        # Use the session state document manager instead of creating a new one
+        document_manager = get_document_manager()
         doc_info = document_manager.get_document_info(st.session_state.current_document_id)
         
         if doc_info:
@@ -340,7 +341,7 @@ def display_chat_interface(rag_engine: RAGEngine):
     # Display chat history
     display_chat_history()
 
-def process_user_question(question: str, search_mode: str, top_k: int, rag_engine: RAGEngine):
+def process_user_question(question: str, search_mode: str, top_k: int, rag_engine):
     """Process a user question and generate a response."""
     try:
         # Add user message to chat history
@@ -490,7 +491,7 @@ def display_chat_history():
         st.session_state.chat_history = []
         st.rerun()
 
-def display_dashboard(document_manager: DocumentManager):
+def display_dashboard(document_manager):
     """Display the dashboard with statistics and system information."""
     st.markdown("## 📊 Dashboard")
     
